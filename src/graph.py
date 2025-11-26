@@ -1,38 +1,50 @@
 from langgraph.graph import StateGraph, END
 from .state import AgentState
 from .nodes import supervisor_node, research_node, code_node
+from .planner import planner_node
+from .critic import critic_node
+from .teams.research_team import research_team_graph
+from .teams.coding_team import coding_team_graph
 
-def route_supervisor(state: AgentState):
-    next_step = state.get("next_step")
-    if next_step == "researcher":
-        return "researcher"
-    elif next_step == "coder":
-        return "coder"
-    else:
-        return END
-
+# Define the graph
 workflow = StateGraph(AgentState)
 
+# Add nodes
+workflow.add_node("planner", planner_node)
 workflow.add_node("supervisor", supervisor_node)
-workflow.add_node("researcher", research_node)
-workflow.add_node("coder", code_node)
+workflow.add_node("research_team", research_team_graph)
+workflow.add_node("coding_team", coding_team_graph)
+workflow.add_node("critic", critic_node)
 
-workflow.set_entry_point("supervisor")
+# Define edges
+workflow.set_entry_point("planner")
+workflow.add_edge("planner", "supervisor")
 
+# Conditional edges from supervisor
 workflow.add_conditional_edges(
     "supervisor",
-    route_supervisor,
+    lambda x: x["next_step"],
     {
-        "researcher": "researcher",
-        "coder": "coder",
-        "FINISH": END,
-        END: END
+        "researcher": "research_team", # Route to team
+        "coder": "coding_team",       # Route to team
+        "FINISH": "critic"
     }
 )
 
-# Add edges from workers back to supervisor
-# In a more complex graph, we might route to a "retry" node if error_count > 0
-workflow.add_edge("researcher", "supervisor")
-workflow.add_edge("coder", "supervisor")
+# Edges from teams back to supervisor
+workflow.add_edge("research_team", "supervisor")
+workflow.add_edge("coding_team", "supervisor")
 
+# Conditional edges from critic
+workflow.add_conditional_edges(
+    "critic",
+    lambda x: x["next_step"],
+    {
+        "supervisor": "supervisor",
+        "FINISH": END
+    }
+)
+
+
+# Compile
 graph = workflow.compile()

@@ -5,3 +5,5 @@ class AgentState(TypedDict):
     messages: Annotated[List[str], operator.add]
     next_step: Optional[str]
     error_count: int
+    plan: Optional[List[str]]
+    critique: Optional[str]
