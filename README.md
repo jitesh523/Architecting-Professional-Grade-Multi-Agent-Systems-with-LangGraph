@@ -116,15 +116,6 @@ Run the comprehensive test suite to verify all agents and graph topologies:
 pytest tests
 ```
 
-## 🗺️ Roadmap
-
-- [x] **Phase 1**: Prototype (Happy Path)
-- [x] **Phase 2**: Tool Integration & Error Handling
-- [x] **Phase 3**: Token Optimization
-- [x] **Phase 4**: Evaluation & Testing
-- [x] **Phase 5**: Deployment (Docker/FastAPI)
-- [x] **Phase 6**: Advanced Architecture (Planner, Critic, Hierarchical Teams)
-- [ ] **Phase 7**: Enterprise Scaling (Persistence, Human-in-the-loop)
 
 ## 📄 License
 
