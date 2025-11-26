@@ -48,3 +48,6 @@ workflow.add_conditional_edges(
 
 # Compile
 graph = workflow.compile()
+
+def compile_graph(checkpointer=None):
+    return workflow.compile(checkpointer=checkpointer)

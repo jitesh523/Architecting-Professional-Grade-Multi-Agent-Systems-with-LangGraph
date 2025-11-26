@@ -6,4 +6,6 @@ langgraph
 fastapi
 uvicorn
 python-dotenv
+pytest-asyncio
+aiosqlite
 pydantic

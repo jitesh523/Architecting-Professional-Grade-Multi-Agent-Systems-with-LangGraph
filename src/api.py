@@ -1,39 +1,54 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, Request
+from fastapi.responses import StreamingResponse
 from pydantic import BaseModel
-from src.graph import graph
-from src.state import AgentState
+from langgraph.checkpoint.sqlite.aio import AsyncSqliteSaver
+from .graph import compile_graph
+from langchain_core.messages import HumanMessage
+import json
+import os
+from contextlib import asynccontextmanager
 import uvicorn
 
-app = FastAPI(title="LangGraph Agent API")
+# Global graph variable
+graph = None
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Startup: Initialize checkpointer and graph
+    global graph
+    async with AsyncSqliteSaver.from_conn_string("checkpoints.sqlite") as checkpointer:
+        graph = compile_graph(checkpointer=checkpointer)
+        yield
+    # Shutdown: Cleanup if needed
+
+app = FastAPI(lifespan=lifespan)
 
 class ChatRequest(BaseModel):
     message: str
+    thread_id: str = "default"
 
 @app.get("/health")
-async def health_check():
+def health_check():
     return {"status": "ok"}
 
 @app.post("/chat")
-async def chat(request: ChatRequest):
-    """
-    Run the graph with the user's message and return the final state.
-    """
-    try:
-        inputs = {"messages": [request.message]}
-        # For simplicity in this prototype, we await the final result
-        # In production, you might want to stream events using Server-Sent Events (SSE)
-        final_state = await graph.ainvoke(inputs)
-        
-        # Extract the last message
-        messages = final_state.get("messages", [])
-        last_message = messages[-1] if messages else "No response"
-        
-        return {
-            "response": str(last_message),
-            "full_state": final_state
-        }
-    except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+async def chat_endpoint(request: ChatRequest):
+    if graph is None:
+        return {"error": "Graph not initialized"}
+
+    config = {"configurable": {"thread_id": request.thread_id}}
+    inputs = {"messages": [HumanMessage(content=request.message)]}
+
+    async def event_stream():
+        try:
+            async for event in graph.astream(inputs, config=config):
+                # Yield events as SSE
+                yield f"data: {json.dumps(str(event))}\n\n"
+        except Exception as e:
+             yield f"data: {json.dumps({'error': str(e)})}\n\n"
+        yield "data: [DONE]\n\n"
+
+    return StreamingResponse(event_stream(), media_type="text/event-stream")
 
 if __name__ == "__main__":
     uvicorn.run(app, host="0.0.0.0", port=8000)
