@@ -1,6 +1,5 @@
 # Architecting Professional-Grade Multi-Agent Systems with LangGraph
 
-![License](https://img.shields.io/badge/license-MIT-blue.svg)
 ![Python](https://img.shields.io/badge/python-3.11+-blue.svg)
 ![LangGraph](https://img.shields.io/badge/LangGraph-0.1.0-green.svg)
 ![Docker](https://img.shields.io/badge/docker-ready-blue.svg)
@@ -117,6 +116,3 @@ pytest tests
 ```
 
 
-## 📄 License
-
-MIT
